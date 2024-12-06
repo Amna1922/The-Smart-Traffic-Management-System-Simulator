@@ -1,4 +1,3 @@
-
 // Amna Zubair  23i-2556   DS-C
 // Zara Tanveer 23i-2507   DS-C
 // Ali Asjad    23i-2648   DS-C
@@ -18,6 +17,10 @@
 #define inf 999999
 
 using namespace std;
+
+class signals
+{
+};
 
 class Graph
 {
@@ -116,14 +119,22 @@ public:
     }
     void print_graph()
     {
+        cout << "-----------CITY TRAFFIC NETWORK--------------" << endl;
         for (int i = 0; i < node_count; i++)
         {
+            cout << node_name[i] << " -> ";
+            bool first = true;
             for (int j = 0; j < node_count; j++)
             {
-                if (adjacency_matrix[i][j] == inf)
-                    cout << "-" << " ";
-                else
-                    cout << adjacency_matrix[i][j] << " ";
+                if (adjacency_matrix[i][j] != inf && adjacency_matrix[i][j] != 0) //  connected nodes bass dikhain gay
+                {
+                    if (!first)
+                    {
+                        cout << " ";
+                    }
+                    cout << "(" << node_name[j] << "," << adjacency_matrix[i][j] << ")";
+                    first = false;
+                }
             }
             cout << endl;
         }
@@ -248,10 +259,77 @@ public:
     }
 };
 
+class VehicleManager : public vehicle
+{
+private:
+    static const int MAX_VEHICLES = 100; // iskay sath jo marzi lagao
+    vehicle vehicles[MAX_VEHICLES];      // for  vehicle objects
+    int vehicleCount;
+
+public:
+    VehicleManager()
+    {
+        vehicleCount = 0;
+    }
+
+    void addVehicle(const vehicle &v)
+    {
+        if (vehicleCount >= MAX_VEHICLES)
+        {
+            cout << "VehicleManager is full. Cannot add more vehicles." << endl;
+            return;
+        }
+        vehicles[vehicleCount++] = v;
+        cout << "Vehicle with ID " << v.id << " added." << endl;
+    }
+
+    void removeVehicle(const string &vehicleID)
+    {
+        bool found = false;
+        for (int i = 0; i < vehicleCount; ++i)
+        {
+            if (vehicles[i].id == vehicleID)
+            {
+                found = true;
+
+                for (int j = i; j < vehicleCount - 1; ++j)
+                {
+                    vehicles[j] = vehicles[j + 1];
+                }
+                vehicleCount--;
+                cout << "Vehicle with ID " << vehicleID << " removed." << endl;
+                break;
+            }
+        }
+        if (!found)
+        {
+            cout << "Vehicle with ID " << vehicleID << " not found." << endl;
+        }
+    }
+
+    void updateRoutes(Graph &g)
+    {
+        for (int i = 0; i < vehicleCount; ++i)
+        {
+            cout << "Updating route for vehicle ID " << vehicles[i].id << ":" << endl;
+            g.dijkstra(vehicles[i].start, vehicles[i].end);
+        }
+    }
+
+    void displayVehiclePositions()
+    {
+        cout << "Vehicle Positions:" << endl;
+        for (int i = 0; i < vehicleCount; ++i)
+        {
+            cout << "Vehicle ID: " << vehicles[i].id << " at node " << vehicles[i].start << " heading to " << vehicles[i].end << endl;
+        }
+    }
+};
+
 int main()
 {
-    // Graph g;
-    // g.print_graph();
+    Graph g;
+    g.print_graph();
 
     vehicle v;
 
