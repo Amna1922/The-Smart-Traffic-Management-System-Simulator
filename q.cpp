@@ -137,6 +137,7 @@ public:
         }
     }
 
+    //* REMEMBER THAT BLOCKED ROADS ARE MARKED WITH inf-1
     void block_road(char node1, char node2)
     {
         int index1 = get_node_index(node1);
@@ -151,8 +152,8 @@ public:
         // if not alr blocked
         if (adjacency_matrix[index1][index2] != 0)
         {
-            adjacency_matrix[index1][index2] = 0;
-            adjacency_matrix[index2][index1] = 0;
+            adjacency_matrix[index1][index2] = inf - 1;
+            adjacency_matrix[index2][index1] = inf - 1;
         }
     }
 
@@ -205,7 +206,7 @@ public:
         {
             for (int j = i + 1; j < node_count; j++)
             {
-                if (adjacency_matrix[i][j] == 0)
+                if (adjacency_matrix[i][j] == inf - 1)
                 {
                     cout << node_name[i] << " to " << node_name[j] << " is blocked " << endl;
                 }
