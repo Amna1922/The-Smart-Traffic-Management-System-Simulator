@@ -18,10 +18,6 @@
 
 using namespace std;
 
-class signals
-{
-};
-
 class Graph
 {
 private:
@@ -117,6 +113,7 @@ public:
         }
         file.close();
     }
+
     void print_graph()
     {
         cout << "-----------CITY TRAFFIC NETWORK--------------" << endl;
@@ -209,6 +206,7 @@ public:
     string id;
     char start;
     char end;
+    string priority;
 
     vehicle()
     {
@@ -216,11 +214,12 @@ public:
         load_data(g);
     }
 
-    vehicle(string id, char start, char end)
+    vehicle(string id, char start, char end, string priority = "low")
     {
         this->id = id;
         this->start = start;
         this->end = end;
+        this->priority = priority;
     }
 
     void move(Graph &g)
@@ -253,6 +252,60 @@ public:
             getline(ss, start, ',');
             getline(ss, end, ',');
             vehicle v(id, start[0], end[0]);
+            v.move(g);
+        }
+        file.close();
+    }
+};
+
+class emergency_vehicle
+{
+public:
+    string id;
+    char start;
+    char end;
+    string priority;
+
+    emergency_vehicle()
+    {
+        Graph g;
+        load_data(g);
+    }
+
+    emergency_vehicle(string id, char start, char end, string priority)
+    {
+        this->id = id;
+        this->start = start;
+        this->end = end;
+        this->priority = priority;
+    }
+
+    void move(Graph &g)
+    {
+        cout << "emergency_vehicle " << id << " is moving from " << start << " to " << end << endl;
+        g.dijkstra(start, end);
+    }
+
+    void load_data(Graph &g)
+    {
+        ifstream file("emergency_vehicles.csv");
+        if (!file.is_open())
+        {
+            cout << "File not found" << endl;
+            return;
+        }
+        string line;
+        getline(file, line);
+
+        while (getline(file, line))
+        {
+            stringstream ss(line);
+            string start, end, id, priority;
+            getline(ss, id, ',');
+            getline(ss, start, ',');
+            getline(ss, end, ',');
+            getline(ss, priority, ',');
+            emergency_vehicle v(id, start[0], end[0], priority);
             v.move(g);
         }
         file.close();
@@ -323,6 +376,67 @@ public:
         {
             cout << "Vehicle ID: " << vehicles[i].id << " at node " << vehicles[i].start << " heading to " << vehicles[i].end << endl;
         }
+    }
+};
+
+class Signal
+{
+public:
+    char ch;
+    int green_light_time;
+
+    void add_signal(char signal, int time)
+    {
+        ch = signal;
+        green_light_time = time;
+    }
+};
+
+class Signals
+{
+private:
+    static const int max_signals = 26; // Defin the maximum number of signals
+    Signal signals[max_signals];
+    int current_size = 0;
+
+public:
+    Signals()
+    {
+        load_data();
+    }
+    Signal &operator[](int index)
+    {
+        if (index >= 0 && index < current_size)
+        {
+            return signals[index];
+        }
+        else
+        {
+            cout << "Index out of range\n";
+            return signals[0];
+        }
+    }
+
+    void load_data()
+    {
+        ifstream file("traffic_signals.csv");
+        if (!file.is_open())
+        {
+            cout << "File not found" << endl;
+            return;
+        }
+        string line;
+        getline(file, line);
+        while (getline(file, line) && current_size < max_signals)
+        {
+            stringstream ss(line);
+            string signal, time;
+            getline(ss, signal, ',');
+            getline(ss, time, ',');
+            signals[current_size].add_signal(signal[0], stoi(time));
+            current_size++;
+        }
+        file.close();
     }
 };
 
