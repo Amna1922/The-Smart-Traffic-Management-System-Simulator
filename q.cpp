@@ -137,6 +137,82 @@ public:
         }
     }
 
+    void block_road(char node1, char node2)
+    {
+        int index1 = get_node_index(node1);
+        int index2 = get_node_index(node2);
+
+        if (index1 == -1 || index2 == -1)
+        {
+            cout << "road not found." << endl;
+            return;
+        }
+
+        // if not alr blocked
+        if (adjacency_matrix[index1][index2] != 0)
+        {
+            adjacency_matrix[index1][index2] = 0;
+            adjacency_matrix[index2][index1] = 0;
+        }
+    }
+
+    void load_road_closures()
+    {
+        ifstream file("road_closures.csv");
+        if (!file.is_open())
+        {
+            cout << "error opening file." << endl;
+            return;
+        }
+
+        string line;
+        getline(file, line); // Skip header
+        while (getline(file, line))
+        {
+            stringstream ss(line);
+            string Intersection1, Intersection2, Status;
+            getline(ss, Intersection1, ',');
+            getline(ss, Intersection2, ',');
+            getline(ss, Status, ',');
+
+            if (Status == "Blocked")
+            {
+                block_road(Intersection1[0], Intersection2[0]);
+            }
+        }
+        file.close();
+    }
+
+    void blockedroad_to_csv(char node1, char node2)
+    {
+        // app=>append
+        ofstream file("road_closures.csv", ios::app);
+        if (!file.is_open())
+        {
+            cout << "error opening file." << endl;
+            return;
+        }
+
+        file << node1 << "," << node2 << ",Blocked\n";
+        file.close();
+    }
+
+    void display_blocked_roads()
+    {
+        // we print only upper triangle of the adjacency matrix -> inorder to avoid repitition
+        cout << "-----------BLOCKED ROADS--------------" << endl;
+        for (int i = 0; i < node_count; i++)
+        {
+            for (int j = i + 1; j < node_count; j++)
+            {
+                if (adjacency_matrix[i][j] == 0)
+                {
+                    cout << node_name[i] << " to " << node_name[j] << " is blocked " << endl;
+                }
+            }
+        }
+    }
+
     void dijkstra(char start, char end)
     {
         int *distance = new int[node_count];
@@ -444,8 +520,19 @@ int main()
 {
     Graph g;
     g.print_graph();
-
+    g.dijkstra('P', 'K');
     vehicle v;
+
+    g.load_road_closures();
+    g.display_blocked_roads();
+    char start, end;
+    cout << "Enter the road to block (start, end): ";
+    cin >> start >> end;
+    g.block_road(start, end);
+    g.blockedroad_to_csv(start, end);
+    cout << "UPDATED:" << endl;
+    g.display_blocked_roads();
+    g.dijkstra(start, end);
 
     return 0;
 }
