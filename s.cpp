@@ -695,6 +695,8 @@ public:
 };
 
 // aa
+
+// aa
 class MinHeap
 {
 public:
@@ -1583,7 +1585,6 @@ int main()
                     break;
                 case 8:
                     cout << "\nbyebye :p" << endl;
-                    exit(0);
                     break;
                 default:
                     cout << "\nInvalid choice. Please select a valid option (1-8)." << endl;
