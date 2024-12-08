@@ -1,12 +1,4 @@
-// Amna Zubair  23i-2556   DS-C
-// Zara Tanveer 23i-2507   DS-C
-// Ali Asjad    23i-2648   DS-C
 
-// git clone https://github.com/Amna1922/DS-Final-project.git
-// cd
-// git add .
-// git commit -m "msg"
-// git push
 
 #include <iostream>
 #include <string>
