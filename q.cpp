@@ -315,6 +315,99 @@ public:
         return value;
     }
 };
+
+// priority queue node
+class pnode
+{
+public:
+    char index;
+    int priority;
+    pnode *next;
+    pnode(char index, int priority)
+    {
+        this->index = index;
+        this->priority = priority;
+    }
+};
+
+// priority queue for Asar algo for the emergency vehicles
+class epqueue
+{
+private:
+    pnode *front;
+    pnode *rear;
+
+public:
+    epqueue()
+    {
+        front = NULL;
+        rear = NULL;
+    }
+
+    void push(char index, int priority)
+    {
+        pnode *nn = new pnode(index, priority);
+
+        if (empty())
+        {
+            front = nn;
+            rear = nn;
+            return;
+        }
+
+        if (nn->priority < front->priority)
+        {
+            nn->next = front;
+            front = nn;
+        }
+
+        else
+        {
+            pnode *temp = front;
+            while (temp->next && temp->next->priority <= priority)
+            {
+                temp = temp->next;
+            }
+            nn->next = temp->next;
+            temp->next = nn;
+
+            if (!temp->next)
+            {
+                rear = nn;
+            }
+        }
+    }
+
+    char pop()
+    {
+        if (empty())
+        {
+            return NULL;
+        }
+
+        pnode *temp = front;
+        char index = front->index;
+        front = front->next;
+
+        if (empty())
+        {
+            rear = NULL;
+        }
+
+        delete temp;
+        return index;
+    }
+
+    bool empty()
+    {
+        if (front == NULL)
+        {
+            return true;
+        }
+        return false;
+    }
+};
+
 // all 3
 class Graph
 {
@@ -636,6 +729,90 @@ public:
         return path; // Return the path array
     }
 
+    void astar(char start, char end, bool check_signal)
+    {
+        static const int num = 26;
+        bool visited[num];
+        int cost[num];
+        char parent[num];
+        epqueue pq;
+        int heuristic[num];
+        int s = get_node_index(start);
+        int e = get_node_index(end);
+        int hcost;
+        int ascore;
+        char cur;
+        // hearistic is total, ascore is from curr
+        for (int i = 0; i < num; i++)
+        {
+            cost[i] = inf;
+            parent[i] = '\0';
+            visited[i] = false;
+
+            // acc to signal open or close
+            if (check_signal)
+            {
+                heuristic[i] = 0;
+            }
+            else
+            {
+                heuristic[i] = 5;
+            }
+        }
+
+        cost[s] = 0;
+        pq.push(start, heuristic[s]);
+
+        while (!pq.empty())
+        {
+            cur = pq.pop();
+            int i = get_node_index(cur);
+
+            if (cur == end)
+            {
+                break;
+            }
+
+            visited[i] = true;
+
+            for (int n = 0; n < num; n++)
+            {
+                if (adjacency_matrix[i][n] != 0 && !visited[n])
+                {
+                    hcost = cost[i] + adjacency_matrix[i][n];
+                    if (hcost < cost[n])
+                    {
+                        cost[n] = hcost;
+                        parent[n] = cur;
+                        ascore = cost[n] + heuristic[n];
+                        pq.push(65 + n, ascore);
+                        // as we hv no getnode func so I used ascii val :(
+                    }
+                }
+            }
+        }
+
+        if (cost[e] == inf)
+        {
+            cout << "No path found." << endl;
+            return;
+        }
+        if (cost[e] == inf - 1)
+        {
+            cout << "Path blocked." << endl;
+            return;
+        }
+
+        cout << "A* path cost: " << cost[e] << endl;
+        cout << "A* path: ";
+        char temp = end;
+        while (temp != '\0')
+        {
+            cout << temp << " ";
+            temp = parent[temp - 'A'];
+        }
+        cout << endl;
+    }
     int visited[26] = {0};
     char path[26];
     int path_index = 0;
@@ -723,7 +900,7 @@ public:
 // aa
 
 // aa
-class MinHeap
+class minheap
 {
 public:
     struct Road
@@ -753,7 +930,7 @@ public:
         }
     }
 
-    void heapifyDown(int index)
+    void heapify(int index)
     {
         int smallest = index;
         int left = 2 * index + 1;
@@ -772,12 +949,12 @@ public:
         if (smallest != index)
         {
             swap(heap[index], heap[smallest]);
-            heapifyDown(smallest);
+            heapify(smallest);
         }
     }
 
 public:
-    MinHeap() : size(0) {}
+    minheap() : size(0) {}
 
     void insert(int start, int end, int vehicleCount)
     {
@@ -801,7 +978,7 @@ public:
         Road min = heap[0];
         heap[0] = heap[size - 1];
         size--;
-        heapifyDown(0);
+        heapify(0);
         return min;
     }
 
@@ -812,11 +989,11 @@ public:
 };
 
 // aa
-class CongestionManager
+class congestion_manager
 {
 private:
-    hash_map vehicleCounts;
-    hash_map congestedRoads;
+    hash_map vehicle_counts;
+    hash_map congested_roads;
 
     // Helper function to create a road identifier string (e.g., "A-B")
     string createRoadKey(char from, char to)
@@ -833,11 +1010,11 @@ public:
 
         string roadKey = createRoadKey(from, to);
 
-        int currentCount = vehicleCounts.get(roadKey);
+        int currentCount = vehicle_counts.get(roadKey);
 
         cout << "Before update: Road " << roadKey << " has " << currentCount << " vehicles." << endl;
 
-        vehicleCounts.put(roadKey, currentCount + 1);
+        vehicle_counts.put(roadKey, currentCount + 1);
 
         cout << "After update: Road " << roadKey << " now has " << currentCount + 1 << " vehicles." << endl;
 
@@ -849,7 +1026,7 @@ public:
         if (currentCount + 1 >= roadWeight)
         {
             // agar congested to hash main put
-            congestedRoads.put(roadKey, 1);
+            congested_roads.put(roadKey, 1);
             cout << "Road " << roadKey << " is now [CONGESTED]" << endl;
         }
     }
@@ -861,7 +1038,7 @@ public:
 
         monitorTraffic(g, from, to);
 
-        if (congestedRoads.get(roadKey) == 1)
+        if (congested_roads.get(roadKey) == 1)
         {
             cout << "Path " << roadKey << " is congested." << endl;
             return true;
@@ -882,7 +1059,7 @@ public:
                 char to = g.get_node_name()[j];
                 string roadKey = createRoadKey(from, to);
 
-                int count = vehicleCounts.get(roadKey);
+                int count = vehicle_counts.get(roadKey);
                 int roadWeight = g.get_adjacency_matrix()[i][j];
 
                 if (count > 0 && roadWeight != inf)
@@ -898,7 +1075,7 @@ public:
 
     void Min_congested(Graph &g)
     {
-        MinHeap minHeap;
+        minheap minHeap;
 
         for (int i = 0; i < g.get_node_count(); i++)
         {
@@ -908,7 +1085,7 @@ public:
                 char to = g.get_node_name()[j];
                 string roadKey = createRoadKey(from, to);
 
-                int count = vehicleCounts.get(roadKey);
+                int count = vehicle_counts.get(roadKey);
                 int roadWeight = g.get_adjacency_matrix()[i][j];
 
                 if (roadWeight != inf)
@@ -922,7 +1099,7 @@ public:
         // extraction yahan pay ho rahi hay
         if (!minHeap.isEmpty())
         {
-            MinHeap::Road leastCongested = minHeap.extractMin();
+            minheap::Road leastCongested = minHeap.extractMin();
             char from = g.get_node_name()[leastCongested.startIndex];
             char to = g.get_node_name()[leastCongested.endIndex];
             int vehicleCount = leastCongested.vehicleCount;
@@ -968,91 +1145,6 @@ public:
             return false;
         }
     }
-
-    void alter(Graph &g)
-    {
-    }
-};
-
-// for movement to determine next pos
-// zt
-class snode
-{
-public:
-    char data;
-    snode *next;
-
-    snode(char data)
-    {
-        this->data = data;
-        next = NULL;
-    }
-};
-
-// zt
-class Stack
-{
-private:
-    snode *top;
-
-public:
-    Stack()
-    {
-        top = NULL;
-    }
-
-    char peek()
-    {
-        return top->data;
-    }
-
-    void push(char value)
-    {
-        snode *nn = new snode(value);
-        nn->next = top;
-        top = nn;
-    }
-
-    void pop()
-    {
-        if (top == NULL)
-        {
-            cout << "empty!" << endl;
-            return;
-        }
-        snode *temp = top;
-        top = top->next;
-        delete temp;
-    }
-
-    bool empty()
-    {
-        return top == NULL;
-    }
-
-    void display()
-    {
-        if (empty())
-        {
-            cout << "Stack is empty." << endl;
-            return;
-        }
-        snode *temp = top;
-        while (temp != NULL)
-        {
-            cout << temp->data << " ";
-            temp = temp->next;
-        }
-        cout << endl;
-    }
-
-    ~Stack()
-    {
-        while (!empty())
-        {
-            pop();
-        }
-    }
 };
 
 // az
@@ -1064,7 +1156,7 @@ public:
     char end;
     char current; // Stores the vehicle's current position
     string priority;
-    int totaltime;
+    int totaltime; // the overall time spent on a road by a vehicle
 
     vehicle() {}
 
@@ -1078,15 +1170,15 @@ public:
         this->totaltime = time;
     }
 
-    void move(Graph &g, CongestionManager &cm)
+    void move(Graph &g, congestion_manager &cm)
     {
         cout << "Vehicle " << id << " is moving from " << start << " to " << end << endl;
 
         char *path = g.dijkstra(current, end);
 
-        if (path == nullptr)
+        if (path == NULL)
         {
-            cout << "No path found!" << endl;
+            cout << "no path. vehicle will fall in khayi :(" << endl;
             return;
         }
 
@@ -1099,14 +1191,13 @@ public:
         // Check if we can move to the next node
         if (path[pathIndex + 1] != '\0')
         {
-            char nextNode = path[pathIndex + 1];
-
+            char next = path[pathIndex + 1];
             // Check if the path to the next node is congested
-            if (cm.isPathCongested(g, current, nextNode))
+            if (cm.isPathCongested(g, current, next))
             {
-                cout << "Path from " << current << " to " << nextNode << " jalsa ho raha hay. Attempting to reroute..." << endl;
+                cout << "Path from " << current << " to " << next << " jalsa ho raha hay. Finding new route." << endl;
 
-                // Attempt to find an alternative path
+                // rerouting
                 if (cm.AlternativePathing(g, current, end))
                 {
                     // Recalculate the path after rerouting
@@ -1116,8 +1207,7 @@ public:
                         cout << "No alternative roads found " << endl;
                         return;
                     }
-
-                    nextNode = path[pathIndex + 1];
+                    next = path[pathIndex + 1];
                 }
                 else
                 {
@@ -1126,9 +1216,9 @@ public:
                 }
             }
 
-            cm.monitorTraffic(g, current, nextNode);
+            cm.monitorTraffic(g, current, next);
 
-            current = nextNode;
+            current = next;
             cout << "Vehicle " << id << " moved to " << current << endl;
         }
         else
@@ -1137,7 +1227,7 @@ public:
         }
     }
 
-    void load_data(Graph &g, CongestionManager &cm)
+    void load_data(Graph &g, congestion_manager &cm)
     {
         ifstream file("vehicles.csv");
         if (!file.is_open())
@@ -1157,71 +1247,10 @@ public:
             getline(ss, end, ',');
             getline(ss, priority, ',');
 
-            // Create and move vehicle
             vehicle v(id, start[0], end[0], priority);
             v.move(g, cm); // Move the vehicle and update congestion
         }
         file.close();
-    }
-};
-
-class VehicleManager
-{
-private:
-    static const int MAX_VEHICLES = 100;
-    vehicle vehicles[MAX_VEHICLES];
-    int vehicleCount;
-
-public:
-    VehicleManager() : vehicleCount(0) {}
-
-    void load_data(Graph &g, CongestionManager &cm)
-    {
-        ifstream file("vehicles.csv");
-        if (!file.is_open())
-        {
-            cout << "File not found" << endl;
-            return;
-        }
-
-        string line;
-        getline(file, line); // Skip the header
-
-        while (getline(file, line))
-        {
-            stringstream ss(line);
-            string id, start, end, priority;
-            getline(ss, id, ',');
-            getline(ss, start, ',');
-            getline(ss, end, ',');
-            getline(ss, priority, ',');
-
-            if (vehicleCount < MAX_VEHICLES)
-            {
-                vehicles[vehicleCount++] = vehicle(id, start[0], end[0], priority);
-            }
-        }
-        file.close();
-    }
-
-    void move_vehicles(Graph &g, CongestionManager &cm)
-    {
-        for (int i = 0; i < vehicleCount; i++)
-        {
-            vehicles[i].move(g, cm);
-        }
-    }
-
-    void displayVehiclePositions()
-    {
-        cout << "\nVehicle Positions:" << endl;
-        for (int i = 0; i < vehicleCount; i++)
-        {
-            cout << "Vehicle ID: " << vehicles[i].id
-                 << " at node " << vehicles[i].current
-                 << " heading to " << vehicles[i].end
-                 << " (Priority: " << vehicles[i].priority << ")" << endl;
-        }
     }
 };
 
@@ -1281,6 +1310,92 @@ public:
         file.close();
     }
 };
+class VehicleManager
+{
+private:
+    static const int MAX_VEHICLES = 100;
+    vehicle vehicles[MAX_VEHICLES];
+    int vehicleCount;
+
+public:
+    VehicleManager() : vehicleCount(0) {}
+
+    void load_data(Graph &g, congestion_manager &cm)
+    {
+
+        ifstream file2("emergency_vehicles.csv");
+        if (!file2.is_open())
+        {
+            cout << "File not found" << endl;
+            return;
+        }
+
+        string line2;
+        getline(file2, line2); // Skip the header
+
+        while (getline(file2, line2))
+        {
+            stringstream ss(line2);
+            string id, start, end, priority;
+            getline(ss, id, ',');
+            getline(ss, start, ',');
+            getline(ss, end, ',');
+            getline(ss, priority, ',');
+
+            if (vehicleCount < MAX_VEHICLES)
+            {
+                vehicles[vehicleCount++] = vehicle(id, start[0], end[0], priority);
+            }
+        }
+        file2.close();
+
+        ifstream file("vehicles.csv");
+        if (!file.is_open())
+        {
+            cout << "File not found" << endl;
+            return;
+        }
+
+        string line;
+        getline(file, line); // Skip the header
+
+        while (getline(file, line))
+        {
+            stringstream ss(line);
+            string id, start, end, priority;
+            getline(ss, id, ',');
+            getline(ss, start, ',');
+            getline(ss, end, ',');
+            getline(ss, priority, ',');
+
+            if (vehicleCount < MAX_VEHICLES)
+            {
+                vehicles[vehicleCount++] = vehicle(id, start[0], end[0], priority);
+            }
+        }
+        file.close();
+    }
+
+    void move_vehicles(Graph &g, congestion_manager &cm)
+    {
+        for (int i = 0; i < vehicleCount; i++)
+        {
+            vehicles[i].move(g, cm);
+        }
+    }
+
+    void displayVehiclePositions()
+    {
+        cout << "\nVehicle Positions:" << endl;
+        for (int i = 0; i < vehicleCount; i++)
+        {
+            cout << "Vehicle ID: " << vehicles[i].id
+                 << " at node " << vehicles[i].current
+                 << " heading to " << vehicles[i].end
+                 << " (Priority: " << vehicles[i].priority << ")" << endl;
+        }
+    }
+};
 
 // az--max heap
 class priority_queue : public vehicle, emergency_vehicle // for traffic managment,max heap
@@ -1331,7 +1446,6 @@ public:
         }
     }
 
-public:
     priority_queue()
     { // insertings cars into heap, max heap
         ifstream file("vehicles.csv");
@@ -1438,113 +1552,12 @@ void simulate_signals(Graph &graph, int signal_count)
     }
 }
 
-// congestion implementation
-// zt
-class hnode
-{
-public:
-    string key; // -> start, end which is basically the road
-    int num;    // -> num of cars
-    hnode *next;
-
-    hnode()
-    {
-        num = 0;
-        key = "";
-        next = NULL;
-    }
-
-    hnode(int num, string key)
-    {
-        this->key = key;
-        this->num = num;
-        next = NULL;
-    }
-};
-
-// zt
-class list
-{
-public:
-    hnode *head;
-
-    list()
-    {
-        head = NULL;
-    }
-
-    void insert(string key, int num)
-    {
-        hnode *nn = new hnode(num, key);
-
-        if (head == NULL)
-        {
-            head = nn;
-        }
-        else
-        {
-            hnode *temp = head;
-            while (temp->next != NULL)
-            {
-                if (temp->key == key)
-                {
-                    temp->num += num;
-                    return;
-                }
-                temp = temp->next;
-            }
-            if (temp->key == key)
-            {
-                temp->num += num;
-            }
-            else
-            {
-                temp->next = nn;
-            }
-        }
-    }
-
-    // Search function
-    string find(string key)
-    {
-        hnode *temp = head;
-        while (temp != NULL)
-        {
-            if (temp->key == key)
-            {
-                return "Road " + key + " has " + to_string(temp->num) + " vehicles.";
-            }
-            temp = temp->next;
-        }
-        return "";
-    }
-
-    // modified deletion code, we basiclly rmv car from road i.e. dcrement num by 1
-    void del(string key)
-    {
-        hnode *temp = head;
-        while (temp != NULL)
-        {
-            if (temp->key == key)
-            {
-                if (temp->num > 0)
-                {
-                    temp->num--;
-                    return;
-                }
-                return;
-            }
-            temp = temp->next;
-        }
-    }
-};
-
 int main()
 {
     Graph g;
     vehicle v;
     // hash_table cmap;
-    CongestionManager cm;
+    congestion_manager cm;
     VehicleManager vm;
     Signals s;
     vm.load_data(g, cm);
@@ -1568,57 +1581,87 @@ int main()
                 cout << "5. Handle Emergency Vehicle Routing" << endl;
                 cout << "6. Block Road due to Accident" << endl;
                 cout << "7. Simulate Vehicle Routing" << endl;
-                cout << "8. Exit Simulation" << endl;
+                cout << "8. All possible paths" << endl;
+                cout << "9. Exit Simulation" << endl;
                 cout << "----------------------------------" << endl;
                 cout << "Enter your choice: ";
                 cin >> choice;
-                // Handle menu options
+                if (cin.fail() || choice < 1 || choice > 9)
+                {
+                    cin.clear();                                         // Clear the error flag
+                    cin.ignore(numeric_limits<streamsize>::max(), '\n'); // Discard invalid input
+                    cout << "Invalid choice. Please enter a number between 1 and 9.\n";
+                    continue;
+                }
+                vm.move_vehicles(g, cm);
+
                 switch (choice)
                 {
                 case 1:
                     g.print_graph();
                     break;
                 case 2:
+                    cout << "--------SIGNALS--------" << endl;
                     s.display();
                     s.update_signals();
-                    s.display();
                     break;
                 case 3:
                     cm.displayCongestionLevels(g);
                     cm.Min_congested(g);
-                    // cmap.del("S to V");
-                    // cout << "\nCongestion levels after car deletion:" << endl;
-                    // cmap.print(); //
 
                     break;
                 case 4:
                     g.display_blocked_roads();
-                    break;
                 case 5:
+                {
+                    char start, end;
+                    cout << "Enter the start and end intersections for emergency vehicles (start, end): ";
+                    cin >> start >> end;
 
-                    break;
+                    if (g.get_node_index(start) == -1 || g.get_node_index(end) == -1)
+                    {
+                        cout << "Invalid intersections. Please ensure both start and end are valid nodes.\n";
+                        break;
+                    }
+
+                    g.astar(start, end, s.is_signal_open(end));
+                }
+                break;
                 case 6:
+                {
                     char start, end;
                     cout << "Enter the road to block (start, end): ";
                     cin >> start >> end;
+
+                    if (g.get_node_index(start) == -1 || g.get_node_index(end) == -1)
+                    {
+                        cout << "Invalid intersections. Please ensure both start and end are valid nodes.\n";
+                        break;
+                    }
+
                     g.block_road(start, end);
                     g.blockedroad_to_csv(start, end);
                     cout << "UPDATED:" << endl;
                     g.display_blocked_roads();
-                    break;
+                }
+                break;
                 case 7:
-                    cout << "--------ALL POSSIBLE PATHS--------" << endl;
-                    g.print_all_paths('A', 'F');
+                    cout << "--------VEHICLE MOVEMENT--------" << endl;
                     vm.move_vehicles(g, cm);
                     break;
                 case 8:
+                    cout << "--------ALL POSSIBLE PATHS--------" << endl;
+                    g.print_all_paths('A', 'F');
+                    break;
+                case 9:
                     cout << "\nbyebye :p" << endl;
+                    exit(0);
                     break;
                 default:
                     cout << "\nInvalid choice. Please select a valid option (1-8)." << endl;
                 }
 
-            } while (choice != 8);
+            } while (choice != 9);
             old_time = current_time;
         }
     }
