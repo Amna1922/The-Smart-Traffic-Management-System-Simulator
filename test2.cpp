@@ -1177,33 +1177,6 @@ public:
 
     void load_data(Graph &g, CongestionManager &cm)
     {
-
-        ifstream file2("emergency_vehicles.csv");
-        if (!file2.is_open())
-        {
-            cout << "File not found" << endl;
-            return;
-        }
-
-        string line2;
-        getline(file2, line2); // Skip the header
-
-        while (getline(file2, line2))
-        {
-            stringstream ss(line2);
-            string id, start, end, priority;
-            getline(ss, id, ',');
-            getline(ss, start, ',');
-            getline(ss, end, ',');
-            getline(ss, priority, ',');
-
-            if (vehicleCount < MAX_VEHICLES)
-            {
-                vehicles[vehicleCount++] = vehicle(id, start[0], end[0], priority);
-            }
-        }
-        file2.close();
-
         ifstream file("vehicles.csv");
         if (!file.is_open())
         {
