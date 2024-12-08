@@ -1,5 +1,3 @@
-
-
 // Amna Zubair  23i-2556   DS-C
 // Zara Tanveer 23i-2507   DS-C
 // Ali Asjad    23i-2648   DS-C
@@ -9,14 +7,14 @@
 // git add .
 // git commit -m "msg"
 // git push
-// #include <vector>
-// #include <algorithm>
+
 #include <iostream>
 #include <string>
 #include <fstream>
 #include <sstream>
 #include <cstdlib>
 #include <ctime>
+
 #define max_node 100
 #define inf 999999
 
@@ -24,74 +22,83 @@ using namespace std;
 
 const int HASH_SIZE = 1000;
 
+// aa
 class Hash
 {
 public:
-    // Hash function to convert a string key into an integer index
-    int operator()(const string &key) const
+    int operator()(string &key)
     {
-        int hashValue = 0;
-        for (char c : key)
+        int hash_value = 0;
+        for (size_t i = 0; i < key.length(); ++i)
         {
-            hashValue = (hashValue * 31 + c) % HASH_SIZE;
+            char c = key[i];
+            hash_value = (hash_value * 31 + c) % HASH_SIZE;
+            // here mode 31 ki jaga use 39
+            /// ABGH ko hash table ma use ker raha
         }
-        return hashValue;
+        return hash_value;
     }
 };
 
-// Define a struct to store key-value pairs
-class HashMap
+// aa
+class Entry
+{
+public:
+    string road;        // Road as a string (e.g., "A-B")
+    int no_of_vehicles; // Number of vehicles on that road
+    Entry *next;
+
+    Entry(string str, int n)
+    {
+        road = str;
+        no_of_vehicles = n;
+        next = nullptr;
+    }
+};
+
+// aa
+class hash_map
 {
 private:
     static const int TABLE_SIZE = 100;
-    struct Entry
-    {
-        string road;      // Road as a string (e.g., "A-B")
-        int vehicleCount; // Number of vehicles on that road
-        Entry *next;
-
-        Entry(string road, int vehicleCount)
-            : road(road), vehicleCount(vehicleCount), next(nullptr) {}
-    };
-
     Entry *table[TABLE_SIZE];
 
     // Hash function to calculate index for the road
     int hashFunction(const string &road)
     {
         int hash = 0;
-        for (char c : road)
+        for (size_t i = 0; i < road.length(); i++)
         {
-            hash = (hash * 31 + c) % TABLE_SIZE;
+            hash = (hash * 31 + road[i]) % TABLE_SIZE;
         }
         return hash;
     }
 
 public:
-    HashMap()
+    hash_map()
     {
         for (int i = 0; i < TABLE_SIZE; i++)
             table[i] = nullptr;
     }
 
-    // Add or update the vehicle count for a given road
+    // addding cars for a givenn road
     void put(const string &road, int count)
     {
         int index = hashFunction(road);
         Entry *entry = table[index];
 
+        // Search for the road in the hash table
         while (entry != nullptr)
         {
             if (entry->road == road)
             {
-                cout << "Updating road " << road << " with count " << count << endl;
-                entry->vehicleCount = count;
+                entry->no_of_vehicles = count; // Update the vehicle count
                 return;
             }
             entry = entry->next;
         }
 
-        cout << "Adding new road " << road << " with count " << count << endl;
+        // If the road is not found, create a new entry
         entry = new Entry(road, count);
         entry->next = table[index];
         table[index] = entry;
@@ -107,23 +114,76 @@ public:
         while (entry != nullptr)
         {
             if (entry->road == road)
-                return entry->vehicleCount;
+            {
+                int x = entry->no_of_vehicles;
+                return x;
+            }
             entry = entry->next;
         }
-
         return 0; // Return 0 if the road is not found
     }
 };
+class Queue
+{
+private:
+    static const int MAX_SIZE = 100;
+    char data[MAX_SIZE];
+    int front, rear, size;
 
+public:
+    Queue() : front(0), rear(0), size(0) {}
+
+    bool isEmpty() { return size == 0; }
+
+    bool isFull() { return size == MAX_SIZE; }
+
+    void enqueue(char value)
+    {
+        if (isFull())
+        {
+            cout << "Queue Overflow" << endl;
+            return;
+        }
+        data[rear] = value;
+        rear = (rear + 1) % MAX_SIZE;
+        size++;
+    }
+
+    char dequeue()
+    {
+        if (isEmpty())
+        {
+            cout << "Queue Underflow" << endl;
+            return '\0';
+        }
+        char value = data[front];
+        front = (front + 1) % MAX_SIZE;
+        size--;
+        return value;
+    }
+};
+// all 3
 class Graph
 {
 private:
     int adjacency_matrix[max_node][max_node];
     char node_name[max_node];
     int node_count;
-    Hash hasher;
+    Hash hashing;
 
 public:
+    int get_node_index(char node)
+    {
+        for (int i = 0; i < node_count; i++)
+        {
+            if (node_name[i] == node)
+            {
+                return i;
+            }
+        }
+        return -1;
+    }
+
     Graph()
     {
         node_count = 0;
@@ -138,29 +198,12 @@ public:
             }
         }
         load_data();
+        load_road_closures();
     }
 
-    int get_node_index(char node)
+    bool is_valid_road(int s, int e)
     {
-        for (int i = 0; i < node_count; i++)
-        {
-            if (node_name[i] == node)
-            {
-                return i;
-            }
-        }
-        return -1;
-    }
-
-    bool is_valid_road(int from_index, int to_index)
-    {
-        return adjacency_matrix[from_index][to_index] != inf;
-    }
-
-    void add_node(char node)
-    {
-        node_name[node_count] = node;
-        node_count++;
+        return adjacency_matrix[s][e] != inf;
     }
 
     int (*get_adjacency_matrix())[max_node]
@@ -177,24 +220,26 @@ public:
     {
         return node_count;
     }
+    void make_marix(int n) {}
+
+    void add_node(char node)
+    {
+        node_name[node_count] = node;
+        node_count++;
+    }
 
     void add_edge(char node1, char node2, int traveltime)
     {
-        // Check if nodes already exist in the graph
         int node1_index = get_node_index(node1);
-        int node2_index = get_node_index(node2);
-
-        cout << "Adding edge between " << node1 << " and " << node2 << " with travel time " << traveltime << endl;
-
-        // If node1 doesn't exist, add it
         if (node1_index == -1)
         {
             node_name[node_count] = node1;
             node1_index = node_count;
             node_count++;
+            // if node not found then increment the node count
         }
 
-        // If node2 doesn't exist, add it
+        int node2_index = get_node_index(node2);
         if (node2_index == -1)
         {
             node_name[node_count] = node2;
@@ -202,14 +247,14 @@ public:
             node_count++;
         }
 
-        // Update the adjacency matrix with the travel time
         adjacency_matrix[node1_index][node2_index] = traveltime;
-        adjacency_matrix[node2_index][node1_index] = traveltime; // Since roads are bidirectional
     }
+
     const Hash &get_hash_function() const
     {
-        return hasher;
-    }
+        return hashing;
+    } /// bhai ya kia kerta hay abbb??
+    // hash function return kerta hay
 
     void load_data()
     {
@@ -219,18 +264,22 @@ public:
             cout << "File not found" << endl;
             return;
         }
-
         string line;
-        getline(file, line); // Skip header
+        getline(file, line);
+        // first = true;
         while (getline(file, line))
         {
+            // if (first)
+            // {
+            //     first = false;
+            //     continue;
+            // }
             stringstream ss(line);
             string start, end, traveltime;
             getline(ss, start, ',');
             getline(ss, end, ',');
             getline(ss, traveltime, ',');
-
-            cout << "Loading road: " << start << " to " << end << " with travel time: " << traveltime << endl;
+            // cout << "Loading road: " << start << " to " << end << " with travel time: " << traveltime << endl;
             add_edge(start[0], end[0], stoi(traveltime));
         }
         file.close();
@@ -245,7 +294,7 @@ public:
             bool first = true;
             for (int j = 0; j < node_count; j++)
             {
-                if (adjacency_matrix[i][j] != inf && adjacency_matrix[i][j] != 0)
+                if (adjacency_matrix[i][j] != inf && adjacency_matrix[i][j] != inf - 1 && adjacency_matrix[i][j] != 0) //  connected nodes bass dikhain gay
                 {
                     if (!first)
                     {
@@ -259,6 +308,7 @@ public:
         }
     }
 
+    //* REMEMBER THAT BLOCKED ROADS ARE MARKED WITH inf-1
     void block_road(char node1, char node2)
     {
         int index1 = get_node_index(node1);
@@ -266,15 +316,14 @@ public:
 
         if (index1 == -1 || index2 == -1)
         {
-            cout << "Road not found." << endl;
+            cout << "road not found." << endl;
             return;
         }
 
-        // Block the road (set adjacency to 0)
+        // if not alr blocked
         if (adjacency_matrix[index1][index2] != 0)
         {
-            adjacency_matrix[index1][index2] = 0;
-            adjacency_matrix[index2][index1] = 0;
+            adjacency_matrix[index1][index2] = inf - 1;
         }
     }
 
@@ -327,14 +376,14 @@ public:
         {
             for (int j = i + 1; j < node_count; j++)
             {
-                if (adjacency_matrix[i][j] == 0)
+                if (adjacency_matrix[i][j] == inf - 1)
                 {
                     cout << node_name[i] << " to " << node_name[j] << " is blocked " << endl;
                 }
             }
         }
     }
-    // Assuming maximum nodes is 100
+
 #define MAX_NODESs 100
 
     char *dijkstra(char start, char end)
@@ -410,48 +459,94 @@ public:
 
         return path; // Return the path array
     }
-};
 
-class Queue
-{
-private:
-    static const int MAX_SIZE = 100;
-    int data[MAX_SIZE];
-    int front, rear, size;
-
-public:
-    Queue() : front(0), rear(0), size(0) {}
-
-    bool isEmpty() { return size == 0; }
-
-    bool isFull() { return size == MAX_SIZE; }
-
-    void enqueue(int value)
+    int visited[26] = {0};
+    char path[26];
+    int path_index = 0;
+    int weight = 0;
+    void print_all_paths(char start, char end, int node_count = 26)
     {
-        if (isFull())
+        visited[get_node_index(start)] = 1;
+        path[path_index] = start;
+        path_index++;
+
+        if (start == end)
         {
-            cout << "Queue Overflow" << endl;
-            return;
+            for (int i = 0; i < path_index; i++)
+            {
+                cout << path[i];
+                if (i != path_index - 1)
+                    cout << " ";
+                else
+                    cout << " | Total Weight = " << weight << endl;
+            }
         }
-        data[rear] = value;
-        rear = (rear + 1) % MAX_SIZE;
-        size++;
+        else
+        {
+            for (int i = 0; i < node_count; i++)
+            {
+                int edge_weight = adjacency_matrix[get_node_index(start)][i];
+                if (edge_weight != inf - 1 && edge_weight != inf && !visited[i]) // if edge exists and not visited
+                {
+                    weight += edge_weight;
+                    print_all_paths(node_name[i], end);
+                    weight -= edge_weight; // backtracking
+                }
+            }
+        }
+
+        visited[get_node_index(start)] = 0; // Backtrack
+        path_index--;
     }
 
-    int dequeue()
+    bool bfs(char start, char end, char *path, int &pathLength)
     {
-        if (isEmpty())
+        bool visited[256] = {false};
+        char parent[256];
+
+        Queue queue;
+        queue.enqueue(start);
+        visited[start] = true;
+        parent[start] = '\0';
+
+        int start_index = get_node_index(start);
+        int end_index = get_node_index(end);
+
+        while (!queue.isEmpty())
         {
-            cout << "Queue Underflow" << endl;
-            return -1;
+            char node = queue.dequeue();
+
+            if (node == end)
+            {
+                int length = 0;
+                for (char cur = end; cur != '\0'; cur = parent[cur])
+                {
+                    path[length++] = cur;
+                }
+                path[length] = '\0';
+                pathLength = length;
+                return true;
+            }
+
+            int node_index = get_node_index(node);
+            for (int i = 0; i < node_count; i++)
+            {
+                if (adjacency_matrix[node_index][i] != inf && !visited[i])
+                {
+                    visited[i] = true;
+                    parent[i] = node;
+                    queue.enqueue(node_name[i]);
+                }
+            }
         }
-        int value = data[front];
-        front = (front + 1) % MAX_SIZE;
-        size--;
-        return value;
+
+        return false;
     }
 };
 
+// aa
+
+// aa
 class MinHeap
 {
 public:
@@ -540,11 +635,12 @@ public:
     }
 };
 
+// aa
 class CongestionManager
 {
 private:
-    HashMap vehicleCounts;  // Tracks vehicles on each road using HashMap
-    HashMap congestedRoads; // Tracks congested roads using HashMap
+    hash_map vehicleCounts;
+    hash_map congestedRoads;
 
     // Helper function to create a road identifier string (e.g., "A-B")
     string createRoadKey(char from, char to)
@@ -556,32 +652,49 @@ private:
     }
 
 public:
-    // Monitor traffic and update congestion
     void monitorTraffic(Graph &g, char from, char to)
     {
-        string roadKey = createRoadKey(from, to); // Generate the key for the road segment
+
+        string roadKey = createRoadKey(from, to);
+
         int currentCount = vehicleCounts.get(roadKey);
 
         cout << "Before update: Road " << roadKey << " has " << currentCount << " vehicles." << endl;
 
-        // Increment the vehicle count for this road
         vehicleCounts.put(roadKey, currentCount + 1);
 
         cout << "After update: Road " << roadKey << " now has " << currentCount + 1 << " vehicles." << endl;
 
-        // Get the road weight (travel time) from the graph
         int fromIndex = g.get_node_index(from);
         int toIndex = g.get_node_index(to);
         int roadWeight = g.get_adjacency_matrix()[fromIndex][toIndex];
 
+        // Check if the road is congested
         if (currentCount + 1 >= roadWeight)
         {
+            // agar congested to hash main put
             congestedRoads.put(roadKey, 1);
             cout << "Road " << roadKey << " is now [CONGESTED]" << endl;
         }
     }
 
-    // Display congestion levels
+    bool isPathCongested(Graph &g, char from, char to)
+    {
+
+        string roadKey = createRoadKey(from, to);
+
+        monitorTraffic(g, from, to);
+
+        if (congestedRoads.get(roadKey) == 1)
+        {
+            cout << "Path " << roadKey << " is congested." << endl;
+            return true;
+        }
+
+        cout << "Path " << roadKey << " is not congested." << endl;
+        return false;
+    }
+
     void displayCongestionLevels(Graph &g)
     {
         cout << "-----------Congestion Status--------------" << endl;
@@ -600,14 +713,173 @@ public:
                 {
                     cout << from << " to " << to
                          << " -> vehicles: " << count
-                         << " (Road weight: " << roadWeight << ")"
-                         << (congestedRoads.get(roadKey) ? " [CONGESTED]" : "") << endl;
+
+                         << endl;
                 }
             }
         }
     }
+
+    void Min_congested(Graph &g)
+    {
+        MinHeap minHeap;
+
+        for (int i = 0; i < g.get_node_count(); i++)
+        {
+            for (int j = i + 1; j < g.get_node_count(); j++)
+            {
+                char from = g.get_node_name()[i];
+                char to = g.get_node_name()[j];
+                string roadKey = createRoadKey(from, to);
+
+                int count = vehicleCounts.get(roadKey);
+                int roadWeight = g.get_adjacency_matrix()[i][j];
+
+                if (roadWeight != inf)
+                {
+
+                    minHeap.insert(i, j, count);
+                }
+            }
+        }
+
+        // extraction yahan pay ho rahi hay
+        if (!minHeap.isEmpty())
+        {
+            MinHeap::Road leastCongested = minHeap.extractMin();
+            char from = g.get_node_name()[leastCongested.startIndex];
+            char to = g.get_node_name()[leastCongested.endIndex];
+            int vehicleCount = leastCongested.vehicleCount;
+
+            cout << "Most congested path: " << from << " to " << to
+                 << " with " << vehicleCount << " vehicles." << endl;
+        }
+        else
+        {
+            cout << "No roads found!" << endl;
+        }
+    }
+
+    bool AlternativePathing(Graph g, char start, char end)
+    {
+        if (isPathCongested(g, start, end))
+        {
+            cout << "Path between " << start << " and " << end << " is congested. Rerouting...\n";
+
+            // Use BFS to find a new path
+            char path[256];
+            int pathLength = 0;
+
+            if (g.bfs(start, end, path, pathLength))
+            {
+                cout << "New path found: ";
+                for (int i = 0; i < pathLength; ++i)
+                {
+                    cout << path[i] << " ";
+                }
+                cout << "\n";
+                return true;
+            }
+            else
+            {
+                cout << "No alternative path found.\n";
+                return false;
+            }
+        }
+        else
+        {
+            cout << "Path between " << start << " and " << end << " is clear.\n";
+            return false;
+        }
+    }
+
+    void alter(Graph &g)
+    {
+    }
 };
 
+// for movement to determine next pos
+// zt
+class snode
+{
+public:
+    char data;
+    snode *next;
+
+    snode(char data)
+    {
+        this->data = data;
+        next = NULL;
+    }
+};
+
+// zt
+class Stack
+{
+private:
+    snode *top;
+
+public:
+    Stack()
+    {
+        top = NULL;
+    }
+
+    char peek()
+    {
+        return top->data;
+    }
+
+    void push(char value)
+    {
+        snode *nn = new snode(value);
+        nn->next = top;
+        top = nn;
+    }
+
+    void pop()
+    {
+        if (top == NULL)
+        {
+            cout << "empty!" << endl;
+            return;
+        }
+        snode *temp = top;
+        top = top->next;
+        delete temp;
+    }
+
+    bool empty()
+    {
+        return top == NULL;
+    }
+
+    void display()
+    {
+        if (empty())
+        {
+            cout << "Stack is empty." << endl;
+            return;
+        }
+        snode *temp = top;
+        while (temp != NULL)
+        {
+            cout << temp->data << " ";
+            temp = temp->next;
+        }
+        cout << endl;
+    }
+
+    ~Stack()
+    {
+        while (!empty())
+        {
+            pop();
+        }
+    }
+};
+
+// az
 class vehicle
 {
 public:
@@ -624,17 +896,15 @@ public:
         this->id = id;
         this->start = start;
         this->end = end;
-        this->current = start; // Initialize current position to the starting position
+        this->current = start;
         this->priority = priority;
     }
 
-    // The move method will update the congestion for each road in the path
     void move(Graph &g, CongestionManager &cm)
     {
         cout << "Vehicle " << id << " is moving from " << start << " to " << end << endl;
 
-        // Get the shortest path from start to end using Dijkstra
-        char *path = g.dijkstra(start, end);
+        char *path = g.dijkstra(current, end);
 
         if (path == nullptr)
         {
@@ -642,7 +912,6 @@ public:
             return;
         }
 
-        // Find the current position in the path
         int pathIndex = 0;
         while (path[pathIndex] != '\0' && path[pathIndex] != current)
         {
@@ -654,12 +923,34 @@ public:
         {
             char nextNode = path[pathIndex + 1];
 
-            // Update congestion for the road segment
+            // Check if the path to the next node is congested
+            if (cm.isPathCongested(g, current, nextNode))
+            {
+                cout << "Path from " << current << " to " << nextNode << " jalsa ho raha hay. Attempting to reroute..." << endl;
+
+                // Attempt to find an alternative path
+                if (cm.AlternativePathing(g, current, end))
+                {
+                    // Recalculate the path after rerouting
+                    path = g.dijkstra(current, end);
+                    if (path == nullptr)
+                    {
+                        cout << "No alternative roads found " << endl;
+                        return;
+                    }
+
+                    nextNode = path[pathIndex + 1];
+                }
+                else
+                {
+                    cout << "Rerouting failed. Vehicle cannot move further." << endl;
+                    return;
+                }
+            }
+
             cm.monitorTraffic(g, current, nextNode);
 
-            // Move to the next node
             current = nextNode;
-
             cout << "Vehicle " << id << " moved to " << current << endl;
         }
         else
@@ -668,7 +959,6 @@ public:
         }
     }
 
-    // Load data and move vehicles
     void load_data(Graph &g, CongestionManager &cm)
     {
         ifstream file("vehicles.csv");
@@ -757,6 +1047,7 @@ public:
     }
 };
 
+// az
 class emergency_vehicle
 {
 public:
@@ -811,6 +1102,108 @@ public:
     }
 };
 
+// congestion implementation
+// zt
+class hnode
+{
+public:
+    string key; // -> start, end which is basically the road
+    int num;    // -> num of cars
+    hnode *next;
+
+    hnode()
+    {
+        num = 0;
+        key = "";
+        next = NULL;
+    }
+
+    hnode(int num, string key)
+    {
+        this->key = key;
+        this->num = num;
+        next = NULL;
+    }
+};
+
+// zt
+class list
+{
+public:
+    hnode *head;
+
+    list()
+    {
+        head = NULL;
+    }
+
+    void insert(string key, int num)
+    {
+        hnode *nn = new hnode(num, key);
+
+        if (head == NULL)
+        {
+            head = nn;
+        }
+        else
+        {
+            hnode *temp = head;
+            while (temp->next != NULL)
+            {
+                if (temp->key == key)
+                {
+                    temp->num += num;
+                    return;
+                }
+                temp = temp->next;
+            }
+            if (temp->key == key)
+            {
+                temp->num += num;
+            }
+            else
+            {
+                temp->next = nn;
+            }
+        }
+    }
+
+    // Search function
+    string find(string key)
+    {
+        hnode *temp = head;
+        while (temp != NULL)
+        {
+            if (temp->key == key)
+            {
+                return "Road " + key + " has " + to_string(temp->num) + " vehicles.";
+            }
+            temp = temp->next;
+        }
+        return "";
+    }
+
+    // modified deletion code, we basiclly rmv car from road i.e. dcrement num by 1
+    void del(string key)
+    {
+        hnode *temp = head;
+        while (temp != NULL)
+        {
+            if (temp->key == key)
+            {
+                if (temp->num > 0)
+                {
+                    temp->num--;
+                    return;
+                }
+                return;
+            }
+            temp = temp->next;
+        }
+    }
+};
+
+// az
 class Signal
 {
 public:
@@ -824,108 +1217,88 @@ public:
     }
 };
 
-class Signals
-{
-private:
-    static const int max_signals = 26; // Defin the maximum number of signals
-    Signal signals[max_signals];
-    int current_size = 0;
-
-public:
-    Signals()
-    {
-        load_data();
-    }
-    Signal &operator[](int index)
-    {
-        if (index >= 0 && index < current_size)
-        {
-            return signals[index];
-        }
-        else
-        {
-            cout << "Index out of range\n";
-            return signals[0];
-        }
-    }
-
-    void load_data()
-    {
-        ifstream file("traffic_signals.csv");
-        if (!file.is_open())
-        {
-            cout << "File not found" << endl;
-            return;
-        }
-        string line;
-        getline(file, line);
-        while (getline(file, line) && current_size < max_signals)
-        {
-            stringstream ss(line);
-            string signal, time;
-            getline(ss, signal, ',');
-            getline(ss, time, ',');
-            signals[current_size].add_signal(signal[0], stoi(time));
-            current_size++;
-        }
-        file.close();
-    }
-};
+// az
 
 int main()
 {
-    // Graph g;
-    // g.print_graph();
-    // g.dijkstra('P', 'K');
-    // CongestionManager cm;
-    // VehicleManager vm;
     Graph g;
-    g.print_graph(); // Display the initial city traffic network
-
-    // Create a congestion manager to track congestion levels on roads
+    vehicle v;
+    // hash_table cmap;
     CongestionManager cm;
-
-    // Create a vehicle manager and load vehicle data
     VehicleManager vm;
-
-    // Load vehicle data and simulate the movement of vehicles
     vm.load_data(g, cm);
-    vm.displayVehiclePositions();
-    // vm.displayVehiclePositions();
-    // Display vehicle positions after movement
-    // vm.displayVehiclePositions();
-    vm.move_vehicles(g, cm);
-    // Display congestion levels for each road
-    cm.displayCongestionLevels(g);
-    vm.move_vehicles(g, cm);
-    // Simulate more vehicle movements and update congestion
-    // cout << "\nSimulating additional vehicle movements...\n";
-    // vm.load_data(g, cm); // Load the vehicle data again to simulate another batch of vehicle movements
+    int choice;
+    time_t old_time = time(0);
 
-    // // Display updated congestion levels
-    cm.displayCongestionLevels(g);
-    // Load vehicle data and update congestion
-    // vm.load_data(g, cm);
-    // vm.displayVehiclePositions();
-    // Display vehicle positions
-    // vm.displayVehiclePositions();
+    while (true)
+    {
+        time_t current_time = time(0);
+        long int elapsed_time = current_time - old_time;
+        if (elapsed_time >= 15)
+        {
+            do
+            {
 
-    // Display congestion levels
-    // cm.displayCongestionLevels(g);
+                cout << "------ Simulation Dashboard ------" << endl;
+                cout << "1. Display City Traffic Network" << endl;
+                cout << "2. Display Traffic Signal Status" << endl;
+                cout << "3. Display Congestion Status" << endl;
+                cout << "4. Display Blocked Roads" << endl;
+                cout << "5. Handle Emergency Vehicle Routing" << endl;
+                cout << "6. Block Road due to Accident" << endl;
+                cout << "7. Simulate Vehicle Routing" << endl;
+                cout << "8. Exit Simulation" << endl;
+                cout << "----------------------------------" << endl;
+                cout << "Enter your choice: ";
+                cin >> choice;
+                // Handle menu options
+                switch (choice)
+                {
+                case 1:
+                    g.print_graph();
+                    break;
+                case 2:
 
-    // Find and display the most congested road
-    // cm.findMostCongestedRoad(g);
+                    break;
+                case 3:
+                    cm.displayCongestionLevels(g);
+                    cm.Min_congested(g);
+                    // cmap.del("S to V");
+                    // cout << "\nCongestion levels after car deletion:" << endl;
+                    // cmap.print(); //
 
-    // g.load_road_closures();
-    // g.display_blocked_roads();
-    // char start, end;
-    // cout << "Enter the road to block (start, end): ";
-    // cin >> start >> end;
-    // g.block_road(start, end);
-    // g.blockedroad_to_csv(start, end);
-    // cout << "UPDATED:" << endl;
-    // g.display_blocked_roads();
-    // g.dijkstra(start, end);
+                    break;
+                case 4:
+                    g.display_blocked_roads();
+                    break;
+                case 5:
+
+                    break;
+                case 6:
+                    char start, end;
+                    cout << "Enter the road to block (start, end): ";
+                    cin >> start >> end;
+                    g.block_road(start, end);
+                    g.blockedroad_to_csv(start, end);
+                    cout << "UPDATED:" << endl;
+                    g.display_blocked_roads();
+                    break;
+                case 7:
+                    cout << "--------ALL POSSIBLE PATHS--------" << endl;
+                    g.print_all_paths('A', 'F');
+                    vm.move_vehicles(g, cm);
+                    break;
+                case 8:
+                    cout << "\nbyebye :p" << endl;
+                    break;
+                default:
+                    cout << "\nInvalid choice. Please select a valid option (1-8)." << endl;
+                }
+
+            } while (choice != 8);
+            old_time = current_time;
+        }
+    }
 
     return 0;
 }
