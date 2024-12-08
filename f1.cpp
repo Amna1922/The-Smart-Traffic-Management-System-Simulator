@@ -12,7 +12,7 @@
 #include <string>
 #include <fstream>
 #include <sstream>
-
+#include <ctime>
 #define max_node 100
 #define inf 999999
 
@@ -52,6 +52,7 @@ public:
 			}
 		}
 		load_data();
+		load_road_closures();
 	}
 
 	void make_marix(int n) {}
@@ -82,8 +83,6 @@ public:
 		}
 
 		adjacency_matrix[node1_index][node2_index] = traveltime;
-		adjacency_matrix[node2_index][node1_index] = traveltime;
-		// because this is an undirected graph
 	}
 
 	void load_data()
@@ -96,8 +95,14 @@ public:
 		}
 		string line;
 		getline(file, line);
+		// bool first = true;
 		while (getline(file, line))
 		{
+			// if (first)
+			// {
+			//     first = false;
+			//     continue;
+			// }
 			stringstream ss(line);
 			string start, end, traveltime;
 			getline(ss, start, ',');
@@ -117,7 +122,7 @@ public:
 			bool first = true;
 			for (int j = 0; j < node_count; j++)
 			{
-				if (adjacency_matrix[i][j] != inf && adjacency_matrix[i][j] != 0) //  connected nodes bass dikhain gay
+				if (adjacency_matrix[i][j] != inf && adjacency_matrix[i][j] != inf - 1 && adjacency_matrix[i][j] != 0) //  connected nodes bass dikhain gay
 				{
 					if (!first)
 					{
@@ -147,7 +152,6 @@ public:
 		if (adjacency_matrix[index1][index2] != 0)
 		{
 			adjacency_matrix[index1][index2] = inf - 1;
-			adjacency_matrix[index2][index1] = inf - 1;
 		}
 	}
 
@@ -208,11 +212,101 @@ public:
 		}
 	}
 
+	string dijkstra(char start, char end)
+	{
+		int *distance = new int[node_count];
+		bool *visited = new bool[node_count];
+		int *parent = new int[node_count];		 // to store prev
+		int start_index = get_node_index(start); // to store 1st
+		int cur_node;							 // to store curr -> to make path
+		int end_index = get_node_index(end);
+		string path = "";
+
+		// check if valid node
+		if (start_index == -1 || end_index == -1)
+		{
+			cout << "Invalid node" << endl;
+			delete[] distance;
+			delete[] visited;
+			delete[] parent;
+			return "";
+		}
+
+		for (int i = 0; i < node_count; i++)
+		{
+			distance[i] = inf;
+			visited[i] = false;
+			parent[i] = -1;
+		}
+
+		distance[start_index] = 0;
+
+		for (int i = 0; i < node_count; i++)
+		{
+			int min_distance = inf;
+			int min_index = -1;
+
+			for (int j = 0; j < node_count; j++)
+			{
+				if (!visited[j] && distance[j] < min_distance)
+				{
+					min_distance = distance[j];
+					min_index = j;
+				}
+			}
+
+			if (min_index == -1)
+				break; // All nodes are visited
+
+			visited[min_index] = true;
+
+			for (int j = 0; j < node_count; j++)
+			{
+				// inf -1 => to check blocked roads, inf => to check no road
+				if (!visited[j] && adjacency_matrix[min_index][j] != inf && adjacency_matrix[min_index][j] != inf - 1 && distance[min_index] + adjacency_matrix[min_index][j] < distance[j])
+				{
+					distance[j] = distance[min_index] + adjacency_matrix[min_index][j];
+					parent[j] = min_index;
+				}
+			}
+
+			if (min_index == end_index)
+			{
+
+				for (cur_node = end_index; cur_node != start_index; cur_node = parent[cur_node])
+				{
+					path = node_name[cur_node] + path;
+				}
+
+				path = node_name[start_index] + path;
+				break;
+			}
+		}
+
+		if (distance[end_index] == inf)
+		{
+			cout << "No path exists from " << start << " to " << end << endl;
+			delete[] distance;
+			delete[] visited;
+			delete[] parent;
+			return "";
+		}
+
+		cout << "Shortest path from " << start << " to " << end << " is: " << path << endl;
+		cout << "Total distance: " << distance[end_index] << endl;
+
+		delete[] distance;
+		delete[] visited;
+		delete[] parent;
+
+		return path;
+	}
+
 	int visited[26] = {0};
 	char path[26];
 	int path_index = 0;
 	int weight = 0;
-	void print_shortest_path(char start, char end, int node_count = 26)
+	void print_all_paths(char start, char end, int node_count = 26)
 	{
 		visited[get_node_index(start)] = 1;
 		path[path_index] = start;
@@ -234,10 +328,10 @@ public:
 			for (int i = 0; i < node_count; i++)
 			{
 				int edge_weight = adjacency_matrix[get_node_index(start)][i];
-				if (edge_weight != inf && !visited[i]) // if edge exists and not visited
+				if (edge_weight != inf - 1 && edge_weight != inf && !visited[i]) // if edge exists and not visited
 				{
 					weight += edge_weight;
-					print_shortest_path(node_name[i], end);
+					print_all_paths(node_name[i], end);
 					weight -= edge_weight; // backtracking
 				}
 			}
@@ -246,70 +340,86 @@ public:
 		visited[get_node_index(start)] = 0; // Backtrack
 		path_index--;
 	}
+};
 
-	void dijkstra(char start, char end)
+// for movement to determine next pos
+class snode
+{
+public:
+	char data;
+	snode *next;
+
+	snode(char data)
 	{
-		int *distance = new int[node_count];
-		bool *visited = new bool[node_count];
-		int *parent = new int[node_count];
-		int start_index = get_node_index(start);
-		int end_index = get_node_index(end);
-
-		if (start_index == -1 || end_index == -1)
-		{
-			cout << "Invalid node" << endl;
-			return;
-		}
-
-		for (int i = 0; i < node_count; i++)
-		{
-			distance[i] = inf;
-			visited[i] = false;
-			parent[i] = -1;
-		}
-
-		distance[start_index] = 0;
-		for (int i = 0; i < node_count; i++)
-		{
-			int min_distance = inf;
-			int min_index = -1;
-
-			for (int j = 0; j < node_count; j++)
-			{
-				if (!visited[j] && distance[j] < min_distance)
-				{
-					min_distance = distance[j];
-					min_index = j;
-				}
-			}
-			if (min_index == -1)
-				break; // all nodes r visited
-
-			visited[min_index] = true;
-
-			for (int j = 0; j < node_count; j++)
-			{
-				if (!visited[j] && adjacency_matrix[min_index][j] != inf && distance[min_index] + adjacency_matrix[min_index][j] < distance[j])
-				{
-					distance[j] = distance[min_index] + adjacency_matrix[min_index][j];
-					parent[j] = min_index;
-				}
-			}
-		}
-		cout << "Shortest path from " << start << " to " << end << " is: ";
-		int current = end_index;
-		string str = "";
-		while (current != start_index)
-		{
-			cout << node_name[current] << " <- ";
-			str = node_name[current] + str;
-			current = parent[current];
-		}
-		cout << node_name[start_index] << endl;
-		cout << "Total distance: " << distance[end_index] << endl;
+		this->data = data;
+		next = NULL;
 	}
 };
 
+class Stack
+{
+private:
+	snode *top;
+
+public:
+	Stack()
+	{
+		top = NULL;
+	}
+
+	char peek()
+	{
+		return top->data;
+	}
+
+	void push(char value)
+	{
+		snode *nn = new snode(value);
+		nn->next = top;
+		top = nn;
+	}
+
+	void pop()
+	{
+		if (top == NULL)
+		{
+			cout << "empty!" << endl;
+			return;
+		}
+		snode *temp = top;
+		top = top->next;
+		delete temp;
+	}
+
+	bool empty()
+	{
+		return top == NULL;
+	}
+
+	void display()
+	{
+		if (empty())
+		{
+			cout << "Stack is empty." << endl;
+			return;
+		}
+		snode *temp = top;
+		while (temp != NULL)
+		{
+			cout << temp->data << " ";
+			temp = temp->next;
+		}
+		cout << endl;
+	}
+
+	~Stack()
+	{
+		while (!empty())
+		{
+			pop();
+		}
+	}
+};
 class vehicle
 {
 public:
@@ -317,10 +427,12 @@ public:
 	char start;
 	char end;
 	string priority;
-
+	Graph g;
+	Stack stk;
+	int count;
 	vehicle()
 	{
-		Graph g;
+		count = 0;
 		load_data(g);
 	}
 
@@ -330,12 +442,38 @@ public:
 		this->start = start;
 		this->end = end;
 		this->priority = priority;
+		cout << "Vehicle " << id << " is moving from " << start << " to " << end << endl;
+		string str = g.dijkstra(start, end);
+		cout << endl;
+		for (int i = str.length() - 1; i >= 0; i--)
+		{
+			stk.push(str[i]);
+		}
 	}
 
 	void move(Graph &g)
 	{
-		cout << "Vehicle " << id << " is moving from " << start << " to " << end << endl;
-		g.dijkstra(start, end);
+		if (start == end)
+		{
+			cout << "Vehicle " << id << " has already reached its destination." << endl;
+			return;
+		}
+
+		if (!stk.empty())
+		{
+			start = stk.peek();
+			cout << "Vehicle " << id << " is moving from " << start << " to " << end << endl;
+			stk.pop();
+		}
+		else
+		{
+			cout << "Vehicle " << id << " has already reached its destination." << endl;
+		}
+
+		if (start == end)
+		{
+			cout << "Vehicle " << id << " has reached its destination. enjoy :) " << endl;
+		}
 	}
 
 	void load_data(Graph &g)
@@ -362,7 +500,7 @@ public:
 			getline(ss, start, ',');
 			getline(ss, end, ',');
 			vehicle v(id, start[0], end[0]);
-			v.move(g);
+			count++;
 		}
 		file.close();
 	}
@@ -422,70 +560,190 @@ public:
 	}
 };
 
-class VehicleManager : public vehicle
+// congestion implementation
+class hnode
 {
-private:
-	static const int MAX_VEHICLES = 100; // iskay sath jo marzi lagao
-	vehicle vehicles[MAX_VEHICLES];		 // for  vehicle objects
-	int vehicleCount;
-
 public:
-	VehicleManager()
+	string key; // -> start, end which is basically the road
+	int num;	// -> num of cars
+	hnode *next;
+
+	hnode()
 	{
-		vehicleCount = 0;
+		num = 0;
+		key = "";
+		next = NULL;
 	}
 
-	void addVehicle(const vehicle &v)
+	hnode(int num, string key)
 	{
-		if (vehicleCount >= MAX_VEHICLES)
+		this->key = key;
+		this->num = num;
+		next = NULL;
+	}
+};
+
+class list
+{
+public:
+	hnode *head;
+
+	list()
+	{
+		head = NULL;
+	}
+
+	void insert(string key, int num)
+	{
+		hnode *nn = new hnode(num, key);
+
+		if (head == NULL)
 		{
-			cout << "VehicleManager is full. Cannot add more vehicles." << endl;
-			return;
+			head = nn;
 		}
-		vehicles[vehicleCount++] = v;
-		cout << "Vehicle with ID " << v.id << " added." << endl;
-	}
-
-	void removeVehicle(const string &vehicleID)
-	{
-		bool found = false;
-		for (int i = 0; i < vehicleCount; ++i)
+		else
 		{
-			if (vehicles[i].id == vehicleID)
+			hnode *temp = head;
+			while (temp->next != NULL)
 			{
-				found = true;
-
-				for (int j = i; j < vehicleCount - 1; ++j)
+				if (temp->key == key)
 				{
-					vehicles[j] = vehicles[j + 1];
+					temp->num += num;
+					return;
 				}
-				vehicleCount--;
-				cout << "Vehicle with ID " << vehicleID << " removed." << endl;
-				break;
+				temp = temp->next;
+			}
+			if (temp->key == key)
+			{
+				temp->num += num;
+			}
+			else
+			{
+				temp->next = nn;
 			}
 		}
-		if (!found)
+	}
+
+	// Search function
+	string find(string key)
+	{
+		hnode *temp = head;
+		while (temp != NULL)
 		{
-			cout << "Vehicle with ID " << vehicleID << " not found." << endl;
+			if (temp->key == key)
+			{
+				return "Road " + key + " has " + to_string(temp->num) + " vehicles.";
+			}
+			temp = temp->next;
+		}
+		return "";
+	}
+
+	// modified deletion code, we basiclly rmv car from road i.e. dcrement num by 1
+	void del(string key)
+	{
+		hnode *temp = head;
+		while (temp != NULL)
+		{
+			if (temp->key == key)
+			{
+				if (temp->num > 0)
+				{
+					temp->num--;
+					return;
+				}
+				return;
+			}
+			temp = temp->next;
+		}
+	}
+};
+
+// Hash table implementation
+class hash_table
+{
+private:
+	static const int hashGroups = 42;
+	list table[hashGroups];
+
+public:
+	hash_table()
+	{
+		load_vehicles_inhash("vehicles.csv");
+	}
+	// Hash function
+	int hash_func(string key)
+	{
+		int hash = 0;
+		for (int i = 0; i < key.length(); i++)
+		{
+			hash = (hash + key[i]) % hashGroups;
+		}
+		return hash;
+	}
+
+	// Insert function
+	void insert(int num, string key)
+	{
+		int index = hash_func(key);
+		table[index].insert(key, num);
+	}
+
+	// Search function
+	string search(string key)
+	{
+		int index = hash_func(key);
+		return table[index].find(key);
+	}
+
+	// decrement car count
+	void del(string key)
+	{
+		int index = hash_func(key);
+		table[index].del(key);
+	}
+
+	void print()
+	{
+		cout << "----------------------CONGESTION STATUS-------------------------" << endl;
+		for (int i = 0; i < hashGroups; i++)
+		{
+			hnode *temp = table[i].head;
+			if (temp != NULL)
+			{
+				while (temp != NULL)
+				{
+					cout << temp->key << " has " << temp->num << " vehicles." << endl;
+					temp = temp->next;
+				}
+			}
 		}
 	}
 
-	void updateRoutes(Graph &g)
+	void load_vehicles_inhash(const string &fileName)
 	{
-		for (int i = 0; i < vehicleCount; ++i)
+		ifstream file(fileName);
+		if (!file.is_open())
 		{
-			cout << "Updating route for vehicle ID " << vehicles[i].id << ":" << endl;
-			g.dijkstra(vehicles[i].start, vehicles[i].end);
+			cout << "Error opening file!" << endl;
+			return;
 		}
-	}
+		string line;
+		getline(file, line); // Skip header
 
-	void displayVehiclePositions()
-	{
-		cout << "Vehicle Positions:" << endl;
-		for (int i = 0; i < vehicleCount; ++i)
+		while (getline(file, line))
 		{
-			cout << "Vehicle ID: " << vehicles[i].id << " at node " << vehicles[i].start << " heading to " << vehicles[i].end << endl;
+			stringstream ss(line);
+			string vehicleID, start, end;
+			getline(ss, vehicleID, ',');
+			getline(ss, start, ',');
+			getline(ss, end, ',');
+
+			string str = start + " to " + end;
+			insert(1, str);
 		}
+
+		file.close();
 	}
 };
 
@@ -549,27 +807,80 @@ public:
 		file.close();
 	}
 };
-
 int main()
 {
 	Graph g;
-	g.print_graph();
-	g.print_shortest_path('A', 'F');
-	// g.dijkstra('P', 'K');
-	// vehicle v;
+	vehicle v;
+	hash_table cmap;
+	int choice;
+	time_t old_time = time(0);
 
-	// g.load_road_closures();
-	// g.display_blocked_roads();
+	while (true)
+	{
+		time_t current_time = time(0);
+		long int elapsed_time = current_time - old_time;
+		if (elapsed_time >= 15)
+		{
+			do
+			{
 
-	/*char start, end;
-	cout << "Enter the road to block (start, end): ";
-	cin >> start >> end;
-	g.block_road(start, end);
-	g.blockedroad_to_csv(start, end);
-	cout << "UPDATED:" << endl;
-	g.display_blocked_roads();*/
+				cout << "------ Simulation Dashboard ------" << endl;
+				cout << "1. Display City Traffic Network" << endl;
+				cout << "2. Display Traffic Signal Status" << endl;
+				cout << "3. Display Congestion Status" << endl;
+				cout << "4. Display Blocked Roads" << endl;
+				cout << "5. Handle Emergency Vehicle Routing" << endl;
+				cout << "6. Block Road due to Accident" << endl;
+				cout << "7. Simulate Vehicle Routing" << endl;
+				cout << "8. Exit Simulation" << endl;
+				cout << "----------------------------------" << endl;
+				cout << "Enter your choice: ";
+				cin >> choice;
+				// Handle menu options
+				switch (choice)
+				{
+				case 1:
+					g.print_graph();
+					break;
+				case 2:
 
-	// g.dijkstra('A', 'B');
+					break;
+				case 3:
+					cmap.print();
+					cmap.del("S to V");
+					cout << "\nCongestion levels after car deletion:" << endl;
+					cmap.print();
+					break;
+				case 4:
+					g.display_blocked_roads();
+					break;
+				case 5:
+
+					break;
+				case 6:
+					char start, end;
+					cout << "Enter the road to block (start, end): ";
+					cin >> start >> end;
+					g.block_road(start, end);
+					g.blockedroad_to_csv(start, end);
+					cout << "UPDATED:" << endl;
+					g.display_blocked_roads();
+					break;
+				case 7:
+					cout << "--------ALL POSSIBLE PATHS--------" << endl;
+					g.print_all_paths('A', 'F');
+					break;
+				case 8:
+					cout << "\nbyebye :p" << endl;
+					break;
+				default:
+					cout << "\nInvalid choice. Please select a valid option (1-8)." << endl;
+				}
+
+			} while (choice != 8);
+			old_time = current_time;
+		}
+	}
 
 	return 0;
 }
